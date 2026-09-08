@@ -1,0 +1,43 @@
+services:
+  # --- Backend: FastAPI, deployed as a Docker web service ---
+  - type: web
+    name: discourse-insights-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: starter
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false        # set manually in the Render dashboard — never commit real keys
+      - key: ANTHROPIC_MODEL
+        value: claude-sonnet-5
+      - key: DISCOURSE_BASE_URL
+        sync: false
+      - key: DISCOURSE_API_KEY
+        sync: false
+      - key: DISCOURSE_API_USERNAME
+        sync: false
+      - key: DISCOURSE_CATEGORY_ID
+        sync: false
+      - key: DATABASE_PATH
+        value: /app/data/forum_insights.db
+      - key: CORS_ORIGINS
+        sync: false        # set after first deploy, e.g. https://discourse-insights-frontend.onrender.com
+    disk:
+      name: discourse-insights-data
+      mountPath: /app/data
+      sizeGB: 1
+
+  # --- Frontend: static Vite build ---
+  - type: web
+    name: discourse-insights-frontend
+    runtime: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false        # set after first deploy, e.g. https://discourse-insights-backend.onrender.com/api
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
